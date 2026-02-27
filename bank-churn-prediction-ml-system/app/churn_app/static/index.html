@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Churn Predictor — Bank Customer Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg:       #08090c;
+    --surface:  #0f1117;
+    --border:   #1e2130;
+    --accent:   #4f8ef7;
+    --danger:   #f7564f;
+    --warning:  #f7b84f;
+    --success:  #4ff79e;
+    --text:     #e8eaf0;
+    --muted:    #636880;
+    --mono:     'Space Mono', monospace;
+    --sans:     'DM Sans', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    background-image:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(79,142,247,0.12) 0%, transparent 70%),
+      repeating-linear-gradient(0deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, rgba(255,255,255,0.02) 39px, rgba(255,255,255,0.02) 40px);
+  }
+
+  /* ── HEADER ─────────────────────────────────────────── */
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 18px 40px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(15,17,23,0.85);
+    backdrop-filter: blur(12px);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .logo-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  header h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    letter-spacing: 0.08em;
+    color: var(--text);
+  }
+  header span {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--muted);
+    font-family: var(--mono);
+  }
+
+  /* ── LAYOUT ─────────────────────────────────────────── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 24px;
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    align-items: start;
+  }
+
+  /* ── HERO ────────────────────────────────────────────── */
+  .hero { grid-column: 1 / -1; margin-bottom: 12px; }
+  .hero h2 {
+    font-family: var(--mono);
+    font-size: clamp(26px, 4vw, 42px);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+  .hero h2 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+  .hero p {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 15px;
+    max-width: 520px;
+    line-height: 1.7;
+  }
+
+  /* ── CARD ─────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+
+  /* ── FORM ─────────────────────────────────────────────── */
+  .card h3 {
+    font-family: var(--mono);
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+    width: 100%;
+  }
+  input:focus, select:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(79,142,247,0.12);
+  }
+  select option { background: #0f1117; }
+
+  /* Toggle buttons for binary fields */
+  .toggle-group {
+    display: flex;
+    gap: 8px;
+  }
+  .toggle-btn {
+    flex: 1;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+  }
+  .toggle-btn.active {
+    background: rgba(79,142,247,0.15);
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* ── SUBMIT ──────────────────────────────────────────── */
+  .btn-predict {
+    margin-top: 24px;
+    width: 100%;
+    padding: 14px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-family: var(--mono);
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-predict:hover { background: #6ba3ff; transform: translateY(-1px); box-shadow: 0 8px 24px rgba(79,142,247,0.3); }
+  .btn-predict:active { transform: translateY(0); }
+  .btn-predict.loading { pointer-events: none; opacity: 0.7; }
+  .btn-predict.loading::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 1s infinite;
+  }
+  @keyframes shimmer { to { left: 100%; } }
+
+  /* ── RESULT PANEL ──────────────────────────────────────── */
+  .result-panel { position: sticky; top: 80px; }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    min-height: 260px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    transition: border-color 0.4s;
+  }
+  .result-card.risk-low    { border-color: var(--success); }
+  .result-card.risk-medium { border-color: var(--warning); }
+  .result-card.risk-high   { border-color: var(--danger);  }
+
+  .result-placeholder {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .result-placeholder svg { opacity: 0.3; }
+  .result-placeholder p { font-size: 13px; line-height: 1.6; }
+
+  .risk-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    border-radius: 100px;
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .risk-badge.LOW    { background: rgba(79,247,158,0.12); color: var(--success); }
+  .risk-badge.MEDIUM { background: rgba(247,184,79,0.12); color: var(--warning); }
+  .risk-badge.HIGH   { background: rgba(247,86,79,0.12);  color: var(--danger);  }
+
+  .prob-display {
+    font-family: var(--mono);
+    font-size: 52px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+  .prob-display.LOW    { color: var(--success); }
+  .prob-display.MEDIUM { color: var(--warning); }
+  .prob-display.HIGH   { color: var(--danger);  }
+
+  .prob-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* Gauge bar */
+  .gauge-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 100px;
+    overflow: hidden;
+  }
+  .gauge-fill {
+    height: 100%;
+    border-radius: 100px;
+    transition: width 0.8s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  .gauge-fill.LOW    { background: var(--success); }
+  .gauge-fill.MEDIUM { background: var(--warning); }
+  .gauge-fill.HIGH   { background: var(--danger);  }
+
+  .result-message {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.7;
+    border-left: 2px solid var(--border);
+    padding-left: 12px;
+  }
+
+  /* ── STATS ROW ───────────────────────────────────────── */
+  .stats-row {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 8px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+  }
+  .stat-card .val {
+    font-family: var(--mono);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .stat-card .lbl {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  /* ── RESPONSIVE ───────────────────────────────────────── */
+  @media(max-width:768px) {
+    main { grid-template-columns: 1fr; padding: 32px 16px; }
+    .result-panel { position: static; }
+    .form-grid { grid-template-columns: 1fr; }
+    .stats-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-dot"></div>
+  <h1>CHURN_PREDICTOR</h1>
+  <span>CatBoost · ROC-AUC 0.865 · v1.0</span>
+</header>
+
+<main>
+  <!-- HERO -->
+  <div class="hero">
+    <h2>Bank Customer<br/><em>Churn Intelligence</em></h2>
+    <p>Enter customer profile data to predict churn probability using our trained CatBoost model with SMOTE balancing and threshold optimization.</p>
+  </div>
+
+  <!-- FORM CARD -->
+  <div class="card">
+    <h3>// Customer Profile</h3>
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label>Credit Score</label>
+        <input type="number" id="credit_score" min="300" max="850" value="650" placeholder="300 – 850"/>
+      </div>
+
+      <div class="form-group">
+        <label>Age</label>
+        <input type="number" id="age" min="18" max="100" value="35" placeholder="18 – 100"/>
+      </div>
+
+      <div class="form-group">
+        <label>Geography</label>
+        <select id="geography">
+          <option value="France">France</option>
+          <option value="Germany">Germany</option>
+          <option value="Spain">Spain</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Gender</label>
+        <select id="gender">
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Tenure (years)</label>
+        <input type="number" id="tenure" min="0" max="10" value="5" placeholder="0 – 10"/>
+      </div>
+
+      <div class="form-group">
+        <label>Number of Products</label>
+        <input type="number" id="num_of_products" min="1" max="4" value="2" placeholder="1 – 4"/>
+      </div>
+
+      <div class="form-group full">
+        <label>Balance (€)</label>
+        <input type="number" id="balance" min="0" value="75000" placeholder="0.00"/>
+      </div>
+
+      <div class="form-group full">
+        <label>Estimated Salary (€)</label>
+        <input type="number" id="estimated_salary" min="0" value="100000" placeholder="0.00"/>
+      </div>
+
+      <div class="form-group">
+        <label>Has Credit Card</label>
+        <div class="toggle-group">
+          <div class="toggle-btn active" data-field="has_cr_card" data-val="1">Yes</div>
+          <div class="toggle-btn"        data-field="has_cr_card" data-val="0">No</div>
+        </div>
+        <input type="hidden" id="has_cr_card" value="1"/>
+      </div>
+
+      <div class="form-group">
+        <label>Active Member</label>
+        <div class="toggle-group">
+          <div class="toggle-btn active" data-field="is_active_member" data-val="1">Yes</div>
+          <div class="toggle-btn"        data-field="is_active_member" data-val="0">No</div>
+        </div>
+        <input type="hidden" id="is_active_member" value="1"/>
+      </div>
+
+    </div>
+
+    <button class="btn-predict" id="predictBtn" onclick="runPrediction()">
+      RUN PREDICTION →
+    </button>
+  </div>
+
+  <!-- RESULT PANEL -->
+  <div class="result-panel">
+    <div class="result-card" id="resultCard">
+      <h3 style="font-family:var(--mono);font-size:13px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;">// Prediction Output</h3>
+      <div class="result-placeholder" id="placeholder">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 6v6l4 2"/>
+        </svg>
+        <p>Fill in the customer profile<br/>and run the prediction.</p>
+      </div>
+      <div id="resultContent" style="display:none; flex-direction:column; gap:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between;">
+          <div>
+            <div class="prob-display" id="probDisplay">—</div>
+            <div class="prob-label">Churn Probability</div>
+          </div>
+          <div class="risk-badge" id="riskBadge">—</div>
+        </div>
+        <div class="gauge-track">
+          <div class="gauge-fill" id="gaugeFill" style="width:0%"></div>
+        </div>
+        <div class="result-message" id="resultMessage"></div>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:4px;">
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px;">
+            <div style="font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;">Prediction</div>
+            <div style="font-family:var(--mono); font-size:18px; font-weight:700; margin-top:4px;" id="predLabel">—</div>
+          </div>
+          <div style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:12px;">
+            <div style="font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em;">Risk Level</div>
+            <div style="font-family:var(--mono); font-size:18px; font-weight:700; margin-top:4px;" id="riskLabel">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API info -->
+    <div style="margin-top:16px; padding:16px 20px; background:var(--surface); border:1px solid var(--border); border-radius:12px;">
+      <div style="font-family:var(--mono); font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; margin-bottom:10px;">// API Endpoint</div>
+      <code style="font-family:var(--mono); font-size:12px; color:var(--accent);">POST /predict</code>
+      <div style="margin-top:6px;">
+        <a href="/docs" target="_blank" style="font-size:12px; color:var(--muted); text-decoration:none; border-bottom:1px solid var(--border);">Open Swagger UI →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="val">0.865</div>
+      <div class="lbl">ROC-AUC Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">0.635</div>
+      <div class="lbl">F1 Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="val">CatBoost</div>
+      <div class="lbl">Model Architecture</div>
+    </div>
+  </div>
+</main>
+
+<script>
+// Toggle buttons
+document.querySelectorAll('.toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const field = btn.dataset.field;
+    document.querySelectorAll(`[data-field="${field}"]`).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(field).value = btn.dataset.val;
+  });
+});
+
+async function runPrediction() {
+  const btn = document.getElementById('predictBtn');
+  btn.classList.add('loading');
+  btn.textContent = 'ANALYZING...';
+
+  const payload = {
+    credit_score:     parseInt(document.getElementById('credit_score').value),
+    geography:        document.getElementById('geography').value,
+    gender:           document.getElementById('gender').value,
+    age:              parseInt(document.getElementById('age').value),
+    tenure:           parseInt(document.getElementById('tenure').value),
+    balance:          parseFloat(document.getElementById('balance').value),
+    num_of_products:  parseInt(document.getElementById('num_of_products').value),
+    has_cr_card:      parseInt(document.getElementById('has_cr_card').value),
+    is_active_member: parseInt(document.getElementById('is_active_member').value),
+    estimated_salary: parseFloat(document.getElementById('estimated_salary').value),
+  };
+
+  try {
+    const res  = await fetch('/predict', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'API error');
+    showResult(data);
+  } catch (err) {
+    alert('Error: ' + err.message);
+  } finally {
+    btn.classList.remove('loading');
+    btn.textContent = 'RUN PREDICTION →';
+  }
+}
+
+function showResult(data) {
+  const pct    = (data.churn_probability * 100).toFixed(1);
+  const risk   = data.risk_level;
+  const colors = {LOW: 'var(--success)', MEDIUM: 'var(--warning)', HIGH: 'var(--danger)'};
+
+  document.getElementById('placeholder').style.display    = 'none';
+  const content = document.getElementById('resultContent');
+  content.style.display = 'flex';
+
+  document.getElementById('probDisplay').textContent    = pct + '%';
+  document.getElementById('probDisplay').className      = 'prob-display ' + risk;
+  document.getElementById('riskBadge').textContent      = '● ' + risk + ' RISK';
+  document.getElementById('riskBadge').className        = 'risk-badge ' + risk;
+  document.getElementById('resultMessage').textContent  = data.message;
+  document.getElementById('predLabel').textContent      = data.churn_prediction === 1 ? 'CHURN' : 'STAY';
+  document.getElementById('predLabel').style.color      = data.churn_prediction === 1 ? 'var(--danger)' : 'var(--success)';
+  document.getElementById('riskLabel').textContent      = risk;
+  document.getElementById('riskLabel').style.color      = colors[risk];
+
+  const card = document.getElementById('resultCard');
+  card.className = 'result-card risk-' + risk.toLowerCase();
+
+  setTimeout(() => {
+    document.getElementById('gaugeFill').className = 'gauge-fill ' + risk;
+    document.getElementById('gaugeFill').style.width = pct + '%';
+  }, 100);
+}
+</script>
+</body>
+</html>

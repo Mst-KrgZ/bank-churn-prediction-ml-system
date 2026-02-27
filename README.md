@@ -1,3 +1,5 @@
+![App Demo](demo.png)
+
 # 🏦 Bank Customer Churn Prediction ML System
 
 An end-to-end Machine Learning system for predicting bank customer churn using CatBoost, SMOTE, FastAPI, and Docker.
